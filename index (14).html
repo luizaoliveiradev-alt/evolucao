@@ -1,0 +1,1782 @@
+```html
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+<meta name="theme-color" content="#050505">
+
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<title>Robô Interativo - Evidências da Evolução</title>
+
+
+<style>
+
+:root {
+    --eye-white: #f0faff;
+    --dark-bg: #050505;
+    --glow-soft: rgba(240,250,255,0.15);
+}
+
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--dark-bg);
+    overflow: hidden;
+    touch-action: manipulation;
+    overscroll-behavior: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100dvh;
+}
+
+
+/* =========================================
+   ORIENTAÇÃO
+========================================= */
+
+#orientation-overlay {
+
+    position: fixed;
+    inset: 0;
+    background: #000;
+    color: white;
+    z-index: 99999;
+
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    text-align: center;
+    font-family: Arial,sans-serif;
+}
+
+#orientation-overlay div {
+    font-size: 50px;
+}
+
+#orientation-overlay p {
+    font-size: 18px;
+}
+
+@media (orientation:portrait) {
+
+    #orientation-overlay {
+        display:flex;
+    }
+
+}
+
+
+/* =========================================
+   ROSTO
+========================================= */
+
+.face-container {
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    width:100vw;
+    height:100vh;
+
+    animation:float 5s ease-in-out infinite;
+}
+
+@keyframes float {
+
+    0%,100% {
+        transform:translateY(0);
+    }
+
+    50% {
+        transform:translateY(-12px);
+    }
+
+}
+
+
+/* =========================================
+   OLHOS
+========================================= */
+
+.eyes-row {
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    gap:clamp(60px,11vw,160px);
+
+    width:100vw;
+}
+
+.eye {
+
+    width:clamp(170px,22vw,330px);
+    height:clamp(150px,20vw,290px);
+
+    background:var(--eye-white);
+
+    border-radius:80px;
+
+    box-shadow:
+        0 0 30px var(--glow-soft),
+        0 0 70px rgba(240,250,255,0.07);
+
+    transition:
+        all .4s cubic-bezier(
+            .175,
+            .885,
+            .32,
+            1.275
+        );
+}
+
+
+/* =========================================
+   EXPRESSÃO DORMINDO
+========================================= */
+
+.sleeping .eye {
+
+    width:clamp(140px,18vw,260px);
+
+    height:8px;
+
+    opacity:.2;
+
+    border-radius:4px;
+}
+
+
+/* =========================================
+   EXPRESSÃO FELIZ
+========================================= */
+
+.happy .eye {
+
+    height:clamp(70px,10vw,130px);
+
+    background:transparent;
+
+    border-top:
+        clamp(18px,2.5vw,30px)
+        solid var(--eye-white);
+
+    border-radius:
+        100px 100px 0 0;
+
+    box-shadow:none;
+
+    transform:translateY(25px);
+}
+
+
+/* =========================================
+   EXPRESSÃO PENSANDO
+========================================= */
+
+.thinking #eye-l {
+
+    width:clamp(170px,22vw,330px);
+    height:clamp(150px,20vw,290px);
+}
+
+.thinking #eye-r {
+
+    width:clamp(170px,22vw,330px);
+    height:clamp(100px,15vw,210px);
+}
+
+
+/* =========================================
+   EXPRESSÃO RINDO
+========================================= */
+
+.laughing .eye {
+
+    width:clamp(170px,22vw,330px);
+
+    height:clamp(40px,6vw,75px);
+
+    transform:skewX(10deg);
+}
+
+
+/* =========================================
+   PISCADA
+========================================= */
+
+.blink .eye {
+
+    transform:scaleY(0)!important;
+}
+
+
+/* =========================================
+   RESPONSIVIDADE
+========================================= */
+
+@media (orientation:landscape) {
+
+    .eye {
+
+        width:22vw;
+        height:20vw;
+
+        max-width:330px;
+        max-height:290px;
+    }
+
+}
+
+@media (max-height:500px) and (orientation:landscape) {
+
+    .eye {
+
+        width:20vw;
+        height:17vw;
+
+        max-width:270px;
+        max-height:225px;
+    }
+
+    .eyes-row {
+
+        gap:10vw;
+    }
+
+}
+
+</style>
+
+</head>
+
+
+<body class="sleeping">
+
+
+<div id="orientation-overlay">
+
+    <div>📱🔄</div>
+
+    <p>
+        Gire o dispositivo para deitado.
+    </p>
+
+</div>
+
+
+<div class="face-container">
+
+    <div class="eyes-row">
+
+        <div id="eye-l" class="eye"></div>
+
+        <div id="eye-r" class="eye"></div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* =========================================
+   VARIÁVEIS
+========================================= */
+
+const body = document.body;
+
+let recognitionActive = false;
+let robotSpeaking = false;
+
+let step = "nome";
+
+let userName = "";
+
+let wakeLock = null;
+
+let voices = [];
+
+let audioCtx = null;
+
+let permissionGranted = false;
+
+
+/* =========================================
+   GERADOR DE SONS ROBÓTICOS
+========================================= */
+
+function inicializarAudioContext() {
+
+    if (!audioCtx) {
+
+        audioCtx =
+            new (
+                window.AudioContext ||
+                window.webkitAudioContext
+            )();
+    }
+
+    if (audioCtx.state === 'suspended') {
+
+        audioCtx.resume();
+
+    }
+
+}
+
+
+function tocarSomRobotico(tipo) {
+
+    try {
+
+        inicializarAudioContext();
+
+        if (!audioCtx) return;
+
+        const now = audioCtx.currentTime;
+
+
+        if (tipo === 'bip') {
+
+            const osc =
+                audioCtx.createOscillator();
+
+            const gain =
+                audioCtx.createGain();
+
+            osc.type = 'sawtooth';
+
+            osc.frequency.setValueAtTime(
+                800,
+                now
+            );
+
+            osc.frequency.exponentialRampToValueAtTime(
+                400,
+                now + 0.15
+            );
+
+            gain.gain.setValueAtTime(
+                0.1,
+                now
+            );
+
+            gain.gain.exponentialRampToValueAtTime(
+                0.01,
+                now + 0.15
+            );
+
+            osc.connect(gain);
+
+            gain.connect(
+                audioCtx.destination
+            );
+
+            osc.start(now);
+
+            osc.stop(
+                now + 0.15
+            );
+
+        }
+
+
+        else if (tipo === 'processando') {
+
+            for (
+                let i = 0;
+                i < 3;
+                i++
+            ) {
+
+                const osc =
+                    audioCtx.createOscillator();
+
+                const gain =
+                    audioCtx.createGain();
+
+                osc.type = 'square';
+
+                osc.frequency.setValueAtTime(
+                    600 + (i * 300),
+                    now + (i * 0.08)
+                );
+
+                gain.gain.setValueAtTime(
+                    0.08,
+                    now + (i * 0.08)
+                );
+
+                gain.gain.exponentialRampToValueAtTime(
+                    0.001,
+                    now +
+                    (i * 0.08) +
+                    0.07
+                );
+
+                osc.connect(gain);
+
+                gain.connect(
+                    audioCtx.destination
+                );
+
+                osc.start(
+                    now + (i * 0.08)
+                );
+
+                osc.stop(
+                    now +
+                    (i * 0.08) +
+                    0.07
+                );
+
+            }
+
+        }
+
+    }
+
+    catch(e) {
+
+        console.log(
+            "Erro ao gerar áudio:",
+            e
+        );
+
+    }
+
+}
+
+
+/* =========================================
+   RECONHECIMENTO DE VOZ
+========================================= */
+
+const SpeechRecognition =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+const recognition =
+    SpeechRecognition
+        ? new SpeechRecognition()
+        : null;
+
+
+if (recognition) {
+
+    recognition.lang = "pt-BR";
+
+    recognition.continuous = true;
+
+    recognition.interimResults = false;
+
+    recognition.maxAlternatives = 1;
+
+}
+
+
+/* =========================================
+   VOZES
+========================================= */
+
+function carregarVozes() {
+
+    voices =
+        window.speechSynthesis.getVoices();
+
+}
+
+carregarVozes();
+
+
+if ("onvoiceschanged" in window.speechSynthesis) {
+
+    window.speechSynthesis.onvoiceschanged =
+        carregarVozes;
+
+}
+
+
+/* =========================================
+   ESCOLHER VOZ
+========================================= */
+
+function encontrarMelhorVoz() {
+
+    if (!voices.length) {
+
+        carregarVozes();
+
+    }
+
+    const preferidos = [
+
+        "google português do brasil",
+        "luciana",
+        "felipe",
+        "daniel",
+        "ricardo"
+
+    ];
+
+
+    let voz = voices.find(v => {
+
+        const name =
+            v.name.toLowerCase();
+
+        const lang =
+            v.lang.toLowerCase();
+
+        return (
+
+            (lang === "pt-br" ||
+             lang.startsWith("pt-br"))
+
+            &&
+
+            preferidos.some(
+                p => name.includes(p)
+            )
+
+        );
+
+    });
+
+
+    if (!voz) {
+
+        voz = voices.find(
+
+            v =>
+                v.lang
+                 .toLowerCase()
+                 .startsWith("pt-br")
+
+        );
+
+    }
+
+
+    if (!voz) {
+
+        voz = voices.find(
+
+            v =>
+                v.lang
+                 .toLowerCase()
+                 .startsWith("pt")
+
+        );
+
+    }
+
+
+    return voz || null;
+
+}
+
+
+/* =========================================
+   WAKE LOCK
+========================================= */
+
+async function manterTelaAcesa() {
+
+    try {
+
+        if ("wakeLock" in navigator) {
+
+            if (
+                wakeLock &&
+                !wakeLock.released
+            ) {
+
+                return;
+
+            }
+
+            wakeLock =
+                await navigator
+                    .wakeLock
+                    .request("screen");
+
+        }
+
+    }
+
+    catch(e) {
+
+        console.log(
+            "Wake Lock não disponível:",
+            e
+        );
+
+    }
+
+}
+
+
+document.addEventListener(
+    "visibilitychange",
+    () => {
+
+        if (
+            document.visibilityState ===
+            "visible"
+        ) {
+
+            manterTelaAcesa();
+
+        }
+
+    }
+);
+
+
+/* =========================================
+   ROBÔ FALAR
+========================================= */
+
+function falar(texto, callback) {
+
+    robotSpeaking = true;
+
+    tocarSomRobotico("bip");
+
+    window.speechSynthesis.cancel();
+
+
+    const msg =
+        new SpeechSynthesisUtterance(
+            texto
+        );
+
+
+    msg.lang = "pt-BR";
+
+    msg.pitch = 0.6;
+
+    msg.rate = 0.9;
+
+    msg.volume = 1;
+
+
+    const voz =
+        encontrarMelhorVoz();
+
+
+    if (voz) {
+
+        msg.voice = voz;
+
+    }
+
+
+    msg.onstart = () => {
+
+        robotSpeaking = true;
+
+    };
+
+
+    msg.onend = () => {
+
+        robotSpeaking = false;
+
+        if (callback) {
+
+            callback();
+
+        }
+
+    };
+
+
+    msg.onerror = () => {
+
+        robotSpeaking = false;
+
+    };
+
+
+    setTimeout(() => {
+
+        window.speechSynthesis.speak(msg);
+
+    }, 150);
+
+}
+
+
+/* =========================================
+   PISCAR
+========================================= */
+
+setInterval(() => {
+
+    if (
+        !body.classList.contains(
+            "sleeping"
+        )
+    ) {
+
+        body.classList.add("blink");
+
+        setTimeout(() => {
+
+            body.classList.remove(
+                "blink"
+            );
+
+        }, 150);
+
+    }
+
+}, 4000);
+
+
+/* =========================================
+   ACORDAR ROBÔ
+========================================= */
+
+function acordarRobo() {
+
+    if (permissionGranted) return;
+
+    manterTelaAcesa();
+
+    inicializarAudioContext();
+
+
+    if (recognition) {
+
+        body.className = "awake";
+
+
+        try {
+
+            permissionGranted = true;
+
+            recognition.start();
+
+            recognitionActive = true;
+
+
+            falar(
+
+                "Olá! Eu sou o robô da atividade de Biologia. " +
+
+                "Hoje vamos conversar sobre as evidências da evolução e a seleção natural de Charles Darwin. " +
+
+                "Para começarmos, qual é o seu nome?",
+
+                () => {
+
+                    step = "nome";
+
+                }
+
+            );
+
+        }
+
+        catch(error) {
+
+            console.log(error);
+
+            recognitionActive = false;
+
+            permissionGranted = false;
+
+        }
+
+    }
+
+}
+
+
+/* =========================================
+   CLIQUE INICIAL
+========================================= */
+
+window.addEventListener(
+
+    "click",
+
+    () => {
+
+        acordarRobo();
+
+        entrarTelaCheia();
+
+    },
+
+    {once:true}
+
+);
+
+
+/* =========================================
+   EXTRAÇÃO DO NOME
+========================================= */
+
+function extrairNome(fala) {
+
+    let limpo =
+        fala
+            .toLowerCase()
+
+            .replace(
+                /meu nome é/g,
+                ""
+            )
+
+            .replace(
+                /meu nome e/g,
+                ""
+            )
+
+            .replace(
+                /me chamo/g,
+                ""
+            )
+
+            .replace(
+                /eu sou o/g,
+                ""
+            )
+
+            .replace(
+                /eu sou a/g,
+                ""
+            )
+
+            .replace(
+                /eu sou/g,
+                ""
+            )
+
+            .replace(
+                /sou o/g,
+                ""
+            )
+
+            .replace(
+                /sou a/g,
+                ""
+            )
+
+            .replace(
+                /sou/g,
+                ""
+            )
+
+            .replace(
+                /oi/g,
+                ""
+            )
+
+            .replace(
+                /olá/g,
+                ""
+            )
+
+            .replace(
+                /ola/g,
+                ""
+            )
+
+            .trim();
+
+
+    if (!limpo) {
+
+        return "";
+
+    }
+
+
+    let partes =
+        limpo.split(" ");
+
+
+    let primeiroNome =
+        partes[0];
+
+
+    return (
+
+        primeiroNome
+            .charAt(0)
+            .toUpperCase()
+
+        +
+
+        primeiroNome.slice(1)
+
+    );
+
+}
+
+
+/* =========================================
+   RECONHECIMENTO
+========================================= */
+
+if (recognition) {
+
+
+    recognition.onresult =
+        (event) => {
+
+        if (robotSpeaking) {
+
+            return;
+
+        }
+
+
+        const last =
+            event.results.length - 1;
+
+
+        const fala =
+            event.results[last][0]
+                .transcript
+                .toLowerCase()
+                .trim();
+
+
+        console.log(
+            "Usuário:",
+            fala
+        );
+
+
+        tocarSomRobotico(
+            "processando"
+        );
+
+
+        /* =====================================
+           NOME
+        ===================================== */
+
+        if (step === "nome") {
+
+            userName =
+                extrairNome(fala);
+
+
+            if (!userName) {
+
+                falar(
+                    "Não consegui identificar seu nome. " +
+                    "Por favor, diga novamente seu nome."
+                );
+
+                return;
+
+            }
+
+
+            body.className = "happy";
+
+
+            falar(
+
+                `Prazer, ${userName}. ` +
+
+                "Agora vamos começar nossa conversa sobre evolução. " +
+
+                "Você sabe o que significa evolução biológica?",
+
+                () => {
+
+                    body.className =
+                        "awake";
+
+                    step =
+                        "evolucao";
+
+                }
+
+            );
+
+        }
+
+
+        /* =====================================
+           EVOLUÇÃO
+        ===================================== */
+
+        else if (
+            step === "evolucao"
+        ) {
+
+            body.className =
+                "thinking";
+
+
+            if (
+                fala.includes("não sei") ||
+                fala.includes("nao sei")
+            ) {
+
+                falar(
+
+                    "Sem problema. " +
+
+                    "Evolução biológica é o processo pelo qual " +
+
+                    "as características das populações mudam " +
+
+                    "ao longo das gerações.",
+
+                    () => {
+
+                        perguntarDarwin();
+
+                    }
+
+                );
+
+            }
+
+
+            else if (
+
+                fala.includes("mudança") ||
+                fala.includes("mudanca") ||
+                fala.includes("geração") ||
+                fala.includes("geracao") ||
+                fala.includes("população") ||
+                fala.includes("populacao") ||
+                fala.includes("característica") ||
+                fala.includes("caracteristica") ||
+                fala.includes("tempo")
+
+            ) {
+
+                falar(
+
+                    "Muito bem! " +
+
+                    "A evolução está relacionada às mudanças " +
+
+                    "nas características das populações ao longo " +
+
+                    "das gerações.",
+
+                    () => {
+
+                        perguntarDarwin();
+
+                    }
+
+                );
+
+            }
+
+
+            else {
+
+                falar(
+
+                    "Sua resposta é interessante. " +
+
+                    "De forma simples, evolução biológica " +
+
+                    "é a mudança das características das populações " +
+
+                    "ao longo das gerações.",
+
+                    () => {
+
+                        perguntarDarwin();
+
+                    }
+
+                );
+
+            }
+
+        }
+
+
+        /* =====================================
+           DARWIN
+        ===================================== */
+
+        else if (
+            step === "darwin"
+        ) {
+
+            body.className =
+                "thinking";
+
+
+            if (
+
+                fala.includes("sim") ||
+                fala.includes("já") ||
+                fala.includes("ja") ||
+                fala.includes("conheço") ||
+                fala.includes("conheco")
+
+            ) {
+
+                falar(
+
+                    "Muito bem. " +
+
+                    "Charles Darwin foi um naturalista que desenvolveu " +
+
+                    "uma explicação para a evolução baseada na seleção natural.",
+
+                    () => {
+
+                        perguntarSelecao();
+
+                    }
+
+                );
+
+            }
+
+
+            else {
+
+                falar(
+
+                    "Tudo bem. " +
+
+                    "Charles Darwin foi um naturalista que ficou conhecido " +
+
+                    "por sua explicação da evolução por meio da seleção natural.",
+
+                    () => {
+
+                        perguntarSelecao();
+
+                    }
+
+                );
+
+            }
+
+        }
+
+
+        /* =====================================
+           SELEÇÃO NATURAL
+        ===================================== */
+
+        else if (
+            step === "selecao"
+        ) {
+
+            body.className =
+                "thinking";
+
+
+            if (
+
+                fala.includes("sobreviv") ||
+                fala.includes("reprodu") ||
+                fala.includes("adapt") ||
+                fala.includes("ambiente") ||
+                fala.includes("vantagem") ||
+                fala.includes("mais apto")
+
+            ) {
+
+                falar(
+
+                    "Correto. " +
+
+                    "Na seleção natural, indivíduos com características " +
+
+                    "que favorecem sua sobrevivência e reprodução " +
+
+                    "podem deixar mais descendentes. " +
+
+                    "Com o passar das gerações, essas características " +
+
+                    "podem se tornar mais comuns na população.",
+
+                    () => {
+
+                        perguntarFosseis();
+
+                    }
+
+                );
+
+            }
+
+
+            else {
+
+                falar(
+
+                    "A ideia principal é que características favoráveis " +
+
+                    "ao ambiente podem aumentar as chances de sobrevivência " +
+
+                    "e reprodução dos indivíduos.",
+
+                    () => {
+
+                        perguntarFosseis();
+
+                    }
+
+                );
+
+            }
+
+        }
+
+
+        /* =====================================
+           FÓSSEIS
+        ===================================== */
+
+        else if (
+            step === "fosseis"
+        ) {
+
+            body.className =
+                "thinking";
+
+
+            falar(
+
+                "Muito bem. " +
+
+                "Os fósseis são uma importante evidência da evolução. " +
+
+                "Eles registram organismos ou vestígios de organismos " +
+
+                "que viveram no passado e permitem observar mudanças " +
+
+                "nas formas de vida ao longo do tempo.",
+
+                () => {
+
+                    perguntarAnatomia();
+
+                }
+
+            );
+
+        }
+
+
+        /* =====================================
+           ANATOMIA
+        ===================================== */
+
+        else if (
+            step === "anatomia"
+        ) {
+
+            body.className =
+                "thinking";
+
+
+            falar(
+
+                "As estruturas homólogas são estruturas que possuem " +
+
+                "uma origem evolutiva comum, mesmo que possam exercer " +
+
+                "funções diferentes. " +
+
+                "Elas ajudam a indicar ancestralidade comum entre espécies.",
+
+                () => {
+
+                    perguntarEmbriologia();
+
+                }
+
+            );
+
+        }
+
+
+        /* =====================================
+           EMBRIOLOGIA
+        ===================================== */
+
+        else if (
+            step === "embriologia"
+        ) {
+
+            body.className =
+                "thinking";
+
+
+            falar(
+
+                "A embriologia comparada também fornece evidências. " +
+
+                "Ao comparar o desenvolvimento embrionário de diferentes " +
+
+                "organismos, podemos encontrar semelhanças que ajudam " +
+
+                "a estudar suas relações evolutivas.",
+
+                () => {
+
+                    perguntarBiogeografia();
+
+                }
+
+            );
+
+        }
+
+
+        /* =====================================
+           BIOGEOGRAFIA
+        ===================================== */
+
+        else if (
+            step === "biogeografia"
+        ) {
+
+            body.className =
+                "thinking";
+
+
+            falar(
+
+                "A biogeografia estuda a distribuição dos seres vivos " +
+
+                "pelo planeta. " +
+
+                "A localização das espécies pode revelar padrões relacionados " +
+
+                "ao isolamento geográfico, à adaptação e à história evolutiva.",
+
+                () => {
+
+                    perguntarDNA();
+
+                }
+
+            );
+
+        }
+
+
+        /* =====================================
+           DNA
+        ===================================== */
+
+        else if (
+            step === "dna"
+        ) {
+
+            body.className =
+                "thinking";
+
+
+            falar(
+
+                "O DNA também é uma importante evidência moderna da evolução. " +
+
+                "A comparação de sequências de DNA entre organismos " +
+
+                "permite investigar semelhanças genéticas e relações de ancestralidade.",
+
+                () => {
+
+                    perguntarFinal();
+
+                }
+
+            );
+
+        }
+
+
+        /* =====================================
+           FINAL
+        ===================================== */
+
+        else if (
+            step === "final"
+        ) {
+
+            body.className =
+                "happy";
+
+
+            falar(
+
+                `Muito bem, ${userName}! ` +
+
+                "Durante nossa conversa estudamos a evolução biológica, " +
+
+                "Charles Darwin, seleção natural, fósseis, anatomia comparada, " +
+
+                "embriologia, biogeografia e DNA.",
+
+                () => {
+
+                    setTimeout(() => {
+
+                        falar(
+
+                            `Parabéns, ${userName}. ` +
+
+                            "Você concluiu a atividade sobre as evidências " +
+
+                            "da evolução e a seleção natural de Charles Darwin.",
+
+                            () => {
+
+                                body.className =
+                                    "sleeping";
+
+                                recognitionActive =
+                                    false;
+
+                                if (recognition) {
+
+                                    try {
+
+                                        recognition.stop();
+
+                                    }
+
+                                    catch(e) {}
+
+                                }
+
+                            }
+
+                        );
+
+                    }, 1000);
+
+                }
+
+            );
+
+        }
+
+    };
+
+
+    /* =========================================
+       REINÍCIO SEGURO DO MICROFONE
+    ========================================= */
+
+    recognition.onend = () => {
+
+        if (
+            recognitionActive &&
+            !robotSpeaking
+        ) {
+
+            setTimeout(() => {
+
+                try {
+
+                    recognition.start();
+
+                }
+
+                catch(e) {}
+
+            },300);
+
+        }
+
+    };
+
+
+    recognition.onerror = (event) => {
+
+        console.log(
+            "Erro:",
+            event.error
+        );
+
+    };
+
+}
+
+
+/* =========================================
+   PERGUNTA SOBRE DARWIN
+========================================= */
+
+function perguntarDarwin() {
+
+    body.className =
+        "awake";
+
+    step =
+        "darwin";
+
+
+    falar(
+
+        `Muito bem, ${userName}. ` +
+
+        "Agora me diga: você já ouviu falar em Charles Darwin?"
+
+    );
+
+}
+
+
+/* =========================================
+   PERGUNTA SOBRE SELEÇÃO NATURAL
+========================================= */
+
+function perguntarSelecao() {
+
+    body.className =
+        "awake";
+
+    step =
+        "selecao";
+
+
+    falar(
+
+        "Agora quero saber uma coisa. " +
+
+        "Você consegue explicar, com suas palavras, " +
+
+        "o que é seleção natural?"
+
+    );
+
+}
+
+
+/* =========================================
+   PERGUNTA SOBRE FÓSSEIS
+========================================= */
+
+function perguntarFosseis() {
+
+    body.className =
+        "awake";
+
+    step =
+        "fosseis";
+
+
+    falar(
+
+        "Agora vamos falar sobre fósseis. " +
+
+        "Você sabe por que os fósseis são considerados " +
+
+        "evidências da evolução?"
+
+    );
+
+}
+
+
+/* =========================================
+   PERGUNTA SOBRE ANATOMIA
+========================================= */
+
+function perguntarAnatomia() {
+
+    body.className =
+        "awake";
+
+    step =
+        "anatomia";
+
+
+    falar(
+
+        "Agora pense na anatomia comparada. " +
+
+        "Você sabe o que estruturas homólogas podem indicar?"
+
+    );
+
+}
+
+
+/* =========================================
+   PERGUNTA SOBRE EMBRIOLOGIA
+========================================= */
+
+function perguntarEmbriologia() {
+
+    body.className =
+        "awake";
+
+    step =
+        "embriologia";
+
+
+    falar(
+
+        "E a embriologia comparada? " +
+
+        "Você sabe como a comparação do desenvolvimento embrionário " +
+
+        "pode ajudar a estudar a evolução?"
+
+    );
+
+}
+
+
+/* =========================================
+   PERGUNTA SOBRE BIOGEOGRAFIA
+========================================= */
+
+function perguntarBiogeografia() {
+
+    body.className =
+        "awake";
+
+    step =
+        "biogeografia";
+
+
+    falar(
+
+        "Agora vamos para a biogeografia. " +
+
+        "Você sabe como a distribuição dos seres vivos " +
+
+        "pelo planeta pode fornecer evidências da evolução?"
+
+    );
+
+}
+
+
+/* =========================================
+   PERGUNTA SOBRE DNA
+========================================= */
+
+function perguntarDNA() {
+
+    body.className =
+        "awake";
+
+    step =
+        "dna";
+
+
+    falar(
+
+        "Agora uma evidência mais moderna. " +
+
+        "Você sabe como a comparação do DNA pode ajudar " +
+
+        "a explicar as relações evolutivas entre os seres vivos?"
+
+    );
+
+}
+
+
+/* =========================================
+   PERGUNTA FINAL
+========================================= */
+
+function perguntarFinal() {
+
+    body.className =
+        "awake";
+
+    step =
+        "final";
+
+
+    falar(
+
+        `Para finalizar, ${userName}, ` +
+
+        "me diga uma evidência da evolução " +
+
+        "que você aprendeu durante nossa conversa."
+
+    );
+
+}
+
+
+/* =========================================
+   TELA CHEIA
+========================================= */
+
+async function entrarTelaCheia() {
+
+    try {
+
+        if (
+            document.documentElement.requestFullscreen &&
+            !document.fullscreenElement
+        ) {
+
+            await document
+                .documentElement
+                .requestFullscreen();
+
+        }
+
+    }
+
+    catch(e) {
+
+        console.log(
+            "Tela cheia não disponível."
+        );
+
+    }
+
+}
+
+</script>
+
+</body>
+</html>
